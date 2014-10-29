@@ -1,0 +1,17 @@
+<config>
+	<appconfig>
+		<checklinkinterval>20</checklinkinterval>
+		<checkuserlistinterval>20</checkuserlistinterval>
+		<readfromdatafile>isup.dat</readfromdatafile>
+	</appconfig>
+	<ss7server>
+	     <ip>137.64.32.120</ip>
+	     <port>3032</port>
+	     <username>gjdx</username>
+	     <password></password>
+	</ss7server>
+	<gjdxserver>
+        	<ip>192.168.2.12</ip>
+	        <port>3000</port>
+	</gjdxserver>
+ </config>

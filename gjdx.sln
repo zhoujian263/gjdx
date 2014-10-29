@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual C++ Express 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gjdx_ss7", "project\win32\gjdx_ss7\gjdx_ss7.vcxproj", "{51632A60-78E7-41A1-B672-6C0806A8069F}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gjdx_ss7_server_emu", "project\win32\gjdx_ss7_server_emu\gjdx_ss7_server_emu.vcxproj", "{E5D88BF8-F249-4C89-B659-8927456D6F5A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{51632A60-78E7-41A1-B672-6C0806A8069F}.Debug|Win32.ActiveCfg = Debug|Win32
+		{51632A60-78E7-41A1-B672-6C0806A8069F}.Debug|Win32.Build.0 = Debug|Win32
+		{51632A60-78E7-41A1-B672-6C0806A8069F}.Release|Win32.ActiveCfg = Release|Win32
+		{51632A60-78E7-41A1-B672-6C0806A8069F}.Release|Win32.Build.0 = Release|Win32
+		{E5D88BF8-F249-4C89-B659-8927456D6F5A}.Debug|Win32.ActiveCfg = Debug|Win32
+		{E5D88BF8-F249-4C89-B659-8927456D6F5A}.Debug|Win32.Build.0 = Debug|Win32
+		{E5D88BF8-F249-4C89-B659-8927456D6F5A}.Release|Win32.ActiveCfg = Release|Win32
+		{E5D88BF8-F249-4C89-B659-8927456D6F5A}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
