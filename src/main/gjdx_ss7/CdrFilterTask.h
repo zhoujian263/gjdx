@@ -174,5 +174,6 @@ private:
 	void parseCdrRecord(Application& app);
 	void parseIsupCdrRecord(Application& app,unsigned char *isup);
 	void parseMapCcCdrRecord(Application& app,unsigned char *mapcc);
+	void parseV6txtCdrRecord(Application& app,unsigned char *rec,UInt32);
 	void sortingCdr();
 };

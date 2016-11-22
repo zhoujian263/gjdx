@@ -21,6 +21,9 @@ extern	UInt64	totalRecord;
 extern	UInt64	totalCdr;
 extern	UInt64	totalIsupCdr;
 extern	UInt64	totalMapCCCdr;
+extern	UInt64	totalSipCdr;
+extern	UInt64	totalTupCdr;
+extern	UInt64	totalUnknowCdr;
 
 CheckUserListTask::CheckUserListTask():Task("CheckUserListTask")
 {	
@@ -80,13 +83,13 @@ void CheckUserListTask::runTask()
 				sendCheckLink = 1;
 				lastSendCheckLinkTime.update();
 
-				// 输出目前的统计数据
-				app.logger().information("totalRecord:" + NumberFormatter::format(totalRecord) + " totalCdr:" + NumberFormatter::format(totalCdr) + " totalIsupCdr:" + NumberFormatter::format(totalIsupCdr) + " totalMapCdr:" + NumberFormatter::format(totalMapCCCdr) );
+				// 输出目前的统计数据				
+				app.logger().information("totalRecord:" + NumberFormatter::format(totalRecord) + " totalCdr:" + NumberFormatter::format(totalCdr) + " IsupCdr:" + NumberFormatter::format(totalIsupCdr) + " SipCdr:" + NumberFormatter::format(totalSipCdr) + " TupCdr:" + NumberFormatter::format(totalTupCdr)  + " MapCdr:" + NumberFormatter::format(totalMapCCCdr) + " UnknowCdr:" + NumberFormatter::format(totalUnknowCdr) );
 
 			}
 		}
 
-	}while ( !sleep(2000) );
+	}while ( !sleep(5000) );
 
 	Poco::Util::ServerApplication::terminate();
 

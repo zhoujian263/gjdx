@@ -20,6 +20,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>Windows7.1SDK</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -39,7 +40,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <LibraryPath>D:\WORK\Poco\bin;$(LibraryPath)</LibraryPath>
+    <IncludePath>d:\work\Poco\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -52,6 +53,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>D:\WORK\Poco\Foundation\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -81,12 +83,14 @@
     <ClInclude Include="..\..\..\src\main\gjdx_ss7\CdrFilterTask.h" />
     <ClInclude Include="..\..\..\src\main\gjdx_ss7\CheckUserListTask.h" />
     <ClInclude Include="..\..\..\src\main\gjdx_ss7\gjdx_ss7.h" />
+    <ClInclude Include="..\..\..\src\main\gjdx_ss7\spcodemap.h" />
     <ClInclude Include="..\..\..\src\main\gjdx_ss7\usermap.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\main\gjdx_ss7\CdrFilterTask.cpp" />
     <ClCompile Include="..\..\..\src\main\gjdx_ss7\CheckUserListTask.cpp" />
     <ClCompile Include="..\..\..\src\main\gjdx_ss7\gjdx_ss7.cpp" />
+    <ClCompile Include="..\..\..\src\main\gjdx_ss7\spcodemap.cpp" />
     <ClCompile Include="..\..\..\src\main\gjdx_ss7\usermap.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
