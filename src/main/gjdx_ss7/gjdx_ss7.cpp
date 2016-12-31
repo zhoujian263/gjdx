@@ -31,6 +31,9 @@ UInt64		totalRecord = 0;
 UInt64		totalCdr = 0;
 UInt64		totalIsupCdr = 0;
 UInt64		totalMapCCCdr = 0;
+UInt64		totalSipCdr = 0;
+UInt64		totalTupCdr = 0;
+UInt64		totalUnknowCdr = 0;
 
 void SS7FilterServer::initialize(Application& self)
 {

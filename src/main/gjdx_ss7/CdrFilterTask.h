@@ -56,7 +56,7 @@ typedef struct	bindbody
 	char	password[16];
 	UInt16	data_type_count;
 	UInt16	data_type1;
-//	UInt16	data_type2;
+	UInt16	data_type2;
 
 }BINDBODY;
 
@@ -174,5 +174,6 @@ private:
 	void parseCdrRecord(Application& app);
 	void parseIsupCdrRecord(Application& app,unsigned char *isup);
 	void parseMapCcCdrRecord(Application& app,unsigned char *mapcc);
+	void parseV6txtCdrRecord(Application& app,unsigned char *rec,UInt32);
 	void sortingCdr();
 };

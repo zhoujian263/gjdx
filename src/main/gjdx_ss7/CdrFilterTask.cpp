@@ -21,6 +21,9 @@ extern	UInt64	totalRecord;
 extern	UInt64	totalCdr;
 extern	UInt64	totalIsupCdr;
 extern	UInt64	totalMapCCCdr;
+extern	UInt64	totalSipCdr;
+extern	UInt64	totalTupCdr;
+extern	UInt64	totalUnknowCdr;
 
 void CdrFilterTask::runTask()
 {
@@ -40,10 +43,13 @@ void CdrFilterTask::runTask()
 			break;
 
 		}catch( TimeoutException& exc)
-        {
+        	{
 			app.logger().information( exc.displayText() );
 			app.logger().debug("socket timeout,try again!!!");
-
+		}catch( Exception& exc )
+		{
+			app.logger().information( exc.displayText() );
+			break;
 		}
 
 		if (  sendCheckLink == 1 ){
@@ -53,8 +59,8 @@ void CdrFilterTask::runTask()
 
 	}
 
-	// 输出目前的统计数据
-	app.logger().information("totalRecord:" + NumberFormatter::format(totalRecord) + " totalCdr:" + NumberFormatter::format(totalCdr) + " totalIsupCdr:" + NumberFormatter::format(totalIsupCdr) + " totalMapCdr:" + NumberFormatter::format(totalMapCCCdr) );
+	// 输出最终的统计数据
+	app.logger().information("totalRecord:" + NumberFormatter::format(totalRecord) + " totalCdr:" + NumberFormatter::format(totalCdr) + " IsupCdr:" + NumberFormatter::format(totalIsupCdr) + " SipCdr:" + NumberFormatter::format(totalSipCdr) + " TupCdr:" + NumberFormatter::format(totalTupCdr)  + " MapCdr:" + NumberFormatter::format(totalMapCCCdr) + " UnknowCdr:" + NumberFormatter::format(totalUnknowCdr) );
 
 	Poco::Util::ServerApplication::terminate();
 }
@@ -89,9 +95,9 @@ void CdrFilterTask::connectToSS7Server(Application& app)
 	memcpy(bind->username,appCfg.ss7server_username.c_str(),appCfg.ss7server_username.length());
 	memcpy(bind->password,appCfg.ss7server_password.c_str(),appCfg.ss7server_password.length());
 	
-	bind->data_type_count = 1;
-	bind->data_type1=htons(0x0601);
-//	bind->data_type2=htons(0x0501);
+	bind->data_type_count = 2;
+	bind->data_type1=htons(17002);
+	bind->data_type2=htons(17006);
 
 	ss7_socket.sendBytes(sendbuf,sizeof(MSGHEAD)+sizeof(BINDBODY),0);
 	app.logger().information("bind to ss7server,wait response....");
@@ -180,9 +186,12 @@ void CdrFilterTask::recvRespFromSS7Server(Application& app)
 			msglen = *((u_short *)(recvbuf+2));
 			leftlen = msglen;
 
-		}else
+		}else{
+			string tmp = format("%2X %2X %2X %2X \n",(UInt32)recvbuf[0],(UInt32)recvbuf[1],(UInt32)recvbuf[2],(UInt32)recvbuf[3]);
+			app.logger().information("get message head data " + tmp);
 			throw Poco::ApplicationException("ss7server protocal error:lost message head flag");
-	}
+		}
+	}	
 
 	while( leftlen > 0 )
 	{
@@ -276,9 +285,9 @@ void CdrFilterTask::parseCdrRecord(Application& app)
 			ptr = ptr + xdrhead->data_len + sizeof(XDRHEAD);
 			continue;
 		}
-		if ( xdrhead->ver_info != 0xbfe9 )
+		if ( (xdrhead->type != 0x426e) && (xdrhead->type != 0x426a) )
 		{
-			app.logger().information("xdrhead version not 0xe9bf, this record version is unknow,ingore it!!!");
+			app.logger().information("xdrhead type error, this record is unknow,ingore it!!!");
 			ptr = ptr + xdrhead->data_len + sizeof(XDRHEAD);
 			continue;
 		}
@@ -291,40 +300,11 @@ void CdrFilterTask::parseCdrRecord(Application& app)
 
 		totalCdr++;
 
-		switch( xdrhead->type)
-		{
-			case 0x0D03:		//CDMA CC MAP
+		ptr = ptr + sizeof(XDRHEAD);
 
-				totalMapCCCdr++;
-				parseMapCcCdrRecord(app,(ptr + sizeof(XDRHEAD) -4 ) );
+		parseV6txtCdrRecord(app,ptr,xdrhead->data_len);
 
-				break;
-			case 0x0D01:		//CDMA MM MAP
-				app.logger().debug("Record type [MM MAP] is not support now: ");
-				break;
-			case 0x0601:		//CDMA ISUP
-				
-				totalIsupCdr++;
-				parseIsupCdrRecord(app,(ptr + sizeof(XDRHEAD) -4 ) );
-
-				break;
-			case 0x0501:		//CDMA TUP		
-				app.logger().debug("Record type [TUP] is not support now: ");
-				//	//  add TUP prase code here
-				break;
-			case 0x3000:		//0x0300是智能网的WIN协议
-				app.logger().debug("Record type [WIN] is not support now: ");
-				break;
-			case 0x0D04:		//CDMA SS MAP
-				app.logger().debug("Record type [SS MAP] is not support now: ");
-				break;
-
-			default:
-				app.logger().information("Record type 0X"+ NumberFormatter::formatHex(xdrhead->type, 4) +" is not support now: ");
-				break;
-		}
-
-		ptr = ptr + xdrhead->data_len + sizeof(XDRHEAD);
+		ptr = ptr + xdrhead->data_len;
 
 	}while( ptr != end );
 
@@ -565,6 +545,226 @@ void CdrFilterTask::sortingCdr(){
 	//{
 	//	detailcdr.sorting = 1;
 	//}
+
+	return;
+
+}
+
+
+void CdrFilterTask::parseV6txtCdrRecord(Application& app,unsigned char *rec,UInt32 cdrlen)
+{
+	unsigned	char	*ptr;
+	UInt32		i;
+
+	string		str,startTime,endTime,eventcause,eventid,wReleaseType;
+	UInt32		protocolid,eventresult;
+
+	ptr = rec ;
+	*(ptr + cdrlen -1 ) = 0x0;
+
+	string cdr((char *)ptr);
+	StringTokenizer splitcdr(cdr, ",", StringTokenizer::TOK_TRIM | StringTokenizer::TOK_IGNORE_EMPTY);
+
+	Poco::StringTokenizer::Iterator it = splitcdr.begin();
+
+	str = *it;
+	i=str.find(":");
+	str = str.substr(i+1);
+
+	protocolid = Poco::NumberParser::parse( str );
+
+	switch( protocolid )
+	{
+		case 117:		// SIP CALL
+			totalSipCdr++;	
+			break;
+
+		case 115:		// ISUP CALL---- eventresult定议 1：正常呼叫(用户接通)；2：振铃前主叫挂机；3：振铃后主叫挂机；4：振铃后，被叫拒绝；5：被叫忙(优先)；6:其它
+			totalIsupCdr++;			
+			break;
+
+		case 119:		// MAP CALL
+			totalMapCCCdr++;
+			break;
+
+		case 114:		// TUP CALL
+			totalTupCdr++;
+			break;
+
+		default:
+			//app.logger().information("protocolid "+ *it +" is unknow. ");
+			totalUnknowCdr++;
+			return;
+			break;
+	}
+
+	if(protocolid== 119){
+		// 分析17006结构
+		// wProtocolId:119,ucBTime:2016-11-16 10:20:35.565,linkid:0,ucSpcKind:24,unOPC:16585286,ucOSSN:8,ucOGT:460030944750100,unDPC:16585218,ucDSSN:6,ucDGT:460036061000000,ucETime:2016-11-16 10:20:35.775,ucCallingIMSI:68305070710f000,ucCallingNum:18103508288,ucCallingIMEI:,ucCalledNum:18030156085,ucCalledIMSI:040851053100000,ucAddtionNum:,wEventId:15,wEventCause:65535,dwEventResult:0
+		it++;
+		startTime = *it;
+		i=startTime.find(":");
+		startTime = startTime.substr(i+1);
+		
+		it += 3;
+		detailcdr.opc = *it;
+		i = detailcdr.opc.find(":");
+		detailcdr.opc = detailcdr.opc.substr(i+1);
+
+		it += 3;
+		detailcdr.dpc = *it;
+		i = detailcdr.dpc.find(":");
+		detailcdr.dpc = detailcdr.dpc.substr(i+1);
+
+		it += 3;
+		endTime = *it;
+		i=endTime.find(":");
+		endTime = endTime.substr(i+1);
+
+		it += 2;
+		detailcdr.caller = *it;
+		i=detailcdr.caller.find(":");
+		detailcdr.caller = detailcdr.caller.substr(i+1);
+
+		it += 2;
+		detailcdr.called = *it;
+		i = detailcdr.called.find(":");
+		detailcdr.called = detailcdr.called.substr(i+1);
+
+		it += 3;
+		str = *it;
+		i = str.find(":");
+		eventid =str.substr(i+1);
+		if( eventid.compare(0,2,"15") != 0 )	return;   // 不是呼叫记录，直接放弃
+
+		sortingCdr();
+		// 如果主被叫号码都不在用户列表中，直接返回，不做后面判断
+		if(detailcdr.sorting == 0 ) return;
+
+		it++;
+		eventcause = *it;
+		i = eventcause.find(":");
+		eventcause = eventcause.substr(i+1);
+
+		it++;
+		str = *it;
+		i = str.find(":");
+		str = str.substr(i+1);
+		eventresult = Poco::NumberParser::parse(str);
+
+		if( eventresult == 0)
+			wReleaseType = "Normal";
+		else
+			wReleaseType = "NoAnswer"; 
+
+		eventcause = eventcause + ",SIP";
+
+	}else{
+		// 分析17002结构
+		// protocolid:115,btime:2016-11-12 14:40:57.349,linkid:0,spckind:24,opc:16585533,dpc:16723063,callingnum:035112340,  callednum:4038076,    ocallednum:,pcm:0,cic:11,answerdur:0,    ansoffset:3988,anmoffset:0,    reloffset:33648,rlcoffset:33836,sls:0,callingstflag:0,calledstatus:0,saooffset:0,msrn:4038076,loccationno:,calltranstype:0,eventresult:6,eventcause:4
+		// protocolid:117,btime:2016-11-12 14:39:56.997,linkid:0,spckind:0, opc:5060,    dpc:5060,    callingnum:03575777665,callednum:15535779117,ocallednum:,pcm:2,cic:2, answerdur:74185,ansoffset:0,   anmoffset:21489,reloffset:95668,rlcoffset:1,    sls:2,callingstflag:0,calledstatus:0,saooffset:0,msrn:,       loccationno:,calltranstype:0,eventresult:0,eventcause:200
+		
+		it++;
+		startTime = *it;
+		i=startTime.find(":");
+		startTime = startTime.substr(i+1);
+		endTime = startTime;
+
+		it += 3;
+		detailcdr.opc = *it;
+		i = detailcdr.opc.find(":");
+		detailcdr.opc = detailcdr.opc.substr(i+1);
+
+		it++;
+		detailcdr.dpc = *it;
+		i = detailcdr.dpc.find(":");
+		detailcdr.dpc = detailcdr.dpc.substr(i+1);
+
+		it++;
+		detailcdr.caller = *it;
+		i=detailcdr.caller.find(":");
+		detailcdr.caller = detailcdr.caller.substr(i+1);
+
+		it++;
+		detailcdr.called = *it;
+		i = detailcdr.called.find(":");
+		detailcdr.called = detailcdr.called.substr(i+1);
+
+		sortingCdr();
+		// 如果主被叫号码都不在用户列表中，直接返回，不做后面判断
+		if(detailcdr.sorting == 0 ) return;
+
+		it += 16;
+		str = *it;
+		i = str.find(":");
+		str = str.substr(i+1);
+		eventresult = Poco::NumberParser::parse( str );			// if failed,throw SyntaxException 
+		
+		it++;
+		str = *it;
+		i = str.find(":");
+		eventcause = str.substr(i+1);
+
+		switch( protocolid )
+		{
+			case 117:		// SIP CALL
+			/*	
+				对于呼叫事件：0、用户应答，正常释放；1、用户应答、定时器超时释放；2、用户应答、其他异常释放；3、用户早释（振铃前主叫挂机）；4、振铃早释（振铃后主叫挂机）；5、久叫不应（振铃后超时释放）；6、振铃后,用户拒接；7、无振铃，用户拒接；8、用户忙；100、其他呼损
+				对于除呼叫之外的事件：101、正常结束；102、失败
+			*/
+	
+				if( eventresult < 5)
+					wReleaseType = "Normal";
+				else if( eventresult < 8 )	// 被叫拒绝
+					wReleaseType = "Reject"; 
+				else if( eventresult == 8 )	// 被叫忙
+					wReleaseType = "NoAnswer"; 
+				else if(eventresult >99 )
+					return;
+				else
+					wReleaseType = "Other";
+
+				eventcause = eventcause + ",SIP";
+
+				break;
+
+			case 115:		// ISUP CALL---- eventresult定议 1：正常呼叫(用户接通)；2：振铃前主叫挂机；3：振铃后主叫挂机；4：振铃后，被叫拒绝；5：被叫忙(优先)；6:其它
+	
+				if( eventresult == 1 || eventresult == 2 || eventresult == 3)
+					wReleaseType = "Normal";
+				else if( eventresult == 4 )	// 被叫拒绝
+					wReleaseType = "Reject"; 
+				else if( eventresult == 5 )	// 被叫忙
+					wReleaseType = "NoAnswer"; 
+				else
+					wReleaseType = "Other";
+
+				eventcause = eventcause + ",ISUP";
+
+				break;
+
+			case 114:		// TUP CALL
+
+				if( eventresult == 1 || eventresult == 2 || eventresult == 3)
+					wReleaseType = "Normal";
+				else if( eventresult == 4 )	// 被叫拒绝
+					wReleaseType = "Reject"; 
+				else if( eventresult == 5 )	// 被叫忙
+					wReleaseType = "NoAnswer"; 
+				else
+					wReleaseType = "Other";
+
+				eventcause = eventcause + ",TUP";
+				break;
+
+			default:
+				break;
+		}
+
+	}
+
+	app.logger().information( detailcdr.caller + "," + detailcdr.called + "," +  detailcdr.opc + "," + detailcdr.dpc +  "," + startTime + "," + endTime + "," + wReleaseType + "," + eventcause );
+	sendCdrToGjdxServer( detailcdr.caller + "," + detailcdr.called + "," + startTime + "," + endTime + "," + wReleaseType + "," + eventcause ); 
 
 	return;
 
