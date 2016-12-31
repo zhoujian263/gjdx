@@ -11,6 +11,7 @@ typedef HashMap<string,Int32> phonenumMap;
 
 class usermap
 {
+// usermap add ===
 public:
 	usermap(void);
 	~usermap(void);

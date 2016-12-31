@@ -43,10 +43,13 @@ void CdrFilterTask::runTask()
 			break;
 
 		}catch( TimeoutException& exc)
-        {
+        	{
 			app.logger().information( exc.displayText() );
 			app.logger().debug("socket timeout,try again!!!");
-
+		}catch( Exception& exc )
+		{
+			app.logger().information( exc.displayText() );
+			break;
 		}
 
 		if (  sendCheckLink == 1 ){
@@ -92,9 +95,9 @@ void CdrFilterTask::connectToSS7Server(Application& app)
 	memcpy(bind->username,appCfg.ss7server_username.c_str(),appCfg.ss7server_username.length());
 	memcpy(bind->password,appCfg.ss7server_password.c_str(),appCfg.ss7server_password.length());
 	
-	bind->data_type_count = 1;
-	bind->data_type1=htons(0x0601);
-//	bind->data_type2=htons(0x0501);
+	bind->data_type_count = 2;
+	bind->data_type1=htons(17002);
+	bind->data_type2=htons(17006);
 
 	ss7_socket.sendBytes(sendbuf,sizeof(MSGHEAD)+sizeof(BINDBODY),0);
 	app.logger().information("bind to ss7server,wait response....");
@@ -183,9 +186,12 @@ void CdrFilterTask::recvRespFromSS7Server(Application& app)
 			msglen = *((u_short *)(recvbuf+2));
 			leftlen = msglen;
 
-		}else
+		}else{
+			string tmp = format("%2X %2X %2X %2X \n",(UInt32)recvbuf[0],(UInt32)recvbuf[1],(UInt32)recvbuf[2],(UInt32)recvbuf[3]);
+			app.logger().information("get message head data " + tmp);
 			throw Poco::ApplicationException("ss7server protocal error:lost message head flag");
-	}
+		}
+	}	
 
 	while( leftlen > 0 )
 	{
@@ -625,11 +631,11 @@ void CdrFilterTask::parseV6txtCdrRecord(Application& app,unsigned char *rec,UInt
 		i = detailcdr.called.find(":");
 		detailcdr.called = detailcdr.called.substr(i+1);
 
-		it++;
+		it += 3;
 		str = *it;
 		i = str.find(":");
 		eventid =str.substr(i+1);
-		if( eventid.compare(0,2,"16") != 0 )	return;   // 不是呼叫记录，直接放弃
+		if( eventid.compare(0,2,"15") != 0 )	return;   // 不是呼叫记录，直接放弃
 
 		sortingCdr();
 		// 如果主被叫号码都不在用户列表中，直接返回，不做后面判断

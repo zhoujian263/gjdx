@@ -56,7 +56,7 @@ typedef struct	bindbody
 	char	password[16];
 	UInt16	data_type_count;
 	UInt16	data_type1;
-//	UInt16	data_type2;
+	UInt16	data_type2;
 
 }BINDBODY;
 
