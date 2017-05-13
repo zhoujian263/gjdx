@@ -65,9 +65,16 @@ void CdrFilterTask::runTask()
 	Poco::Util::ServerApplication::terminate();
 }
 
-void CdrFilterTask::sendCdrToGjdxServer(string msg)
+void CdrFilterTask::sendCdrToGjdxServer(Application& app,string msg)
 {
-	gjdx_socket.sendBytes(msg.c_str(), msg.length());
+	try
+	{
+		gjdx_socket.sendBytes(msg.c_str(), msg.length());
+	}
+	catch ( NetException& exc)
+	{
+		 app.logger().information( exc.displayText() );
+	}
 }
 
 void CdrFilterTask::connectToSS7Server(Application& app)
@@ -404,7 +411,7 @@ void CdrFilterTask::parseIsupCdrRecord(Application& app,unsigned char *isup)
 
 	app.logger().information( detailcdr.caller + "," + detailcdr.called + "," +  detailcdr.opc + "," + detailcdr.dpc +  "," + startTime + "," + endTime + "," + wReleaseType + "," + NumberFormatter::format(reason) + ",ISUP" );
 //	app.logger().information( caller + "," + called + "," + startTime + "," + endTime + "," + wReleaseType + "," + NumberFormatter::format(reason) + ",ISUP" );
-	sendCdrToGjdxServer( detailcdr.caller + "," + detailcdr.called + "," + startTime + "," + endTime + "," + wReleaseType + "," + NumberFormatter::format(reason) + ",ISUP" ); 
+	sendCdrToGjdxServer( app,detailcdr.caller + "," + detailcdr.called + "," + startTime + "," + endTime + "," + wReleaseType + "," + NumberFormatter::format(reason) + ",ISUP" ); 
 	
 	return;
 }
@@ -504,7 +511,7 @@ void CdrFilterTask::parseMapCcCdrRecord(Application& app,unsigned char *mapcc)
 	
 	app.logger().information( detailcdr.caller + "," + detailcdr.called + "," +  detailcdr.opc + "," + detailcdr.dpc +  "," + startTime + "," + endTime + "," + NumberFormatter::format(issucess) + "," + NumberFormatter::format(result)+ "," + NumberFormatter::format(optype)+ ",MAP" );	
 //	app.logger().information( caller + "," + called + "," + startTime + "," + endTime + "," + NumberFormatter::format(issucess) + "," + NumberFormatter::format(result)+ "," + NumberFormatter::format(optype)+ ",MAP" );	
-	sendCdrToGjdxServer( detailcdr.caller + "," + detailcdr.called + "," + startTime + "," + endTime + "," + wReleaseType + "," + NumberFormatter::format(result) + ",MAP" ); 
+	sendCdrToGjdxServer( app, detailcdr.caller + "," + detailcdr.called + "," + startTime + "," + endTime + "," + wReleaseType + "," + NumberFormatter::format(result) + ",MAP" ); 
 	
 	return;
 
@@ -534,6 +541,8 @@ void CdrFilterTask::sortingCdr(){
 	if(detailcdr.called.length()<=8)
 	{
 		detailcdr.called=sm->Spcode2Areacode(detailcdr.dpc) + detailcdr.called;
+	}else if(detailcdr.called.compare(0,1,"3") == 0){
+		detailcdr.called= "0" + detailcdr.called;
 	}
 
 	if( um->VerifyUser(detailcdr.caller) || um->VerifyUser(detailcdr.called) )
@@ -764,7 +773,7 @@ void CdrFilterTask::parseV6txtCdrRecord(Application& app,unsigned char *rec,UInt
 	}
 
 	app.logger().information( detailcdr.caller + "," + detailcdr.called + "," +  detailcdr.opc + "," + detailcdr.dpc +  "," + startTime + "," + endTime + "," + wReleaseType + "," + eventcause );
-	sendCdrToGjdxServer( detailcdr.caller + "," + detailcdr.called + "," + startTime + "," + endTime + "," + wReleaseType + "," + eventcause ); 
+	sendCdrToGjdxServer( app, detailcdr.caller + "," + detailcdr.called + "," + startTime + "," + endTime + "," + wReleaseType + "," + eventcause ); 
 
 	return;
 

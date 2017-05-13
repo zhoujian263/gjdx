@@ -163,7 +163,7 @@ private:
 
 	DETAILCDR	detailcdr;
 
-	void sendCdrToGjdxServer(string);
+	void sendCdrToGjdxServer(Application& app,string);
 
 	void connectToSS7Server(Application& app);
 	void disconnectToSS7Server(Application& app);

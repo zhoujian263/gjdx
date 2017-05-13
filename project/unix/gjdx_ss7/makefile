@@ -1,5 +1,5 @@
 TARGET=gjdx_ss7
-LINKFLAGS=-lPocoFoundation -lPocoNet -lPocoUtil -lPocoXML 
+LINKFLAGS=-lPocoFoundation -lPocoNet -lPocoUtil -lPocoXML -lPocoJSON 
 SRCDIR=src
 
 include ../base_temp.mk
